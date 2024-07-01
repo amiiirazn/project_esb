@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<api context="/api" name="NEWAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="POST">
+        <inSequence>
+            <property name="number" expression="$ctx:uri.var.number"/>
+            <property name="headerId" expression="get-property('transport','id')"/>
+            <property name="payload" expression="json-eval($.)"/>
+            <script language="js">
+                <![CDATA[ 
+                var number = mc.getProperty('number');
+                var headerId = mc.getProperty('headerId');
+                var payload = JSON.parse(mc.getProperty('payload'));
+                var found = false;
+                for (var i = 0; i < payload.length; i++){
+                    if (payload[i].BodyId == headerId && payload[i].BodyIdNumber == number) {
+                        mc.setPayloadJSON(payload[i]);
+                        found = true;
+                        mc.setProperty('found', found);
+                        break;
+                    }
+                    if(!found){
+                    mc.setProperty('found', found);
+                    }
+                }
+                ]]>
+            </script>
+            <filter source="$ctx:found" regex="true">
+                <then>
+                    <respond/>
+                </then>
+                <else>
+                    <payloadFactory media-type="json">
+                        <format>{"message":"not found"}</format>
+                        <args/>
+                    </payloadFactory>
+                    <respond/>
+                </else>
+            </filter>
+            
+        </inSequence>
+        <outSequence>
+            <!-- Define outflow mediation logic here -->
+        </outSequence>
+        <faultSequence>
+            <!-- Define error handling mediation logic here -->
+        </faultSequence>
+    </resource>
+</api>
